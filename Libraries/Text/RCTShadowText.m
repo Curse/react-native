@@ -269,7 +269,7 @@ static css_dim_t RCTMeasure(void *context, float width, css_measure_mode_t width
         RCTLogError(@"Views nested within a <Text> must have a width and height");
       }
       NSTextAttachment *attachment = [NSTextAttachment new];
-      attachment.bounds = (CGRect){CGPointZero, {width, height}};
+        attachment.bounds = (CGRect){{0, -font.descender}, {width, height}};
       NSMutableAttributedString *attachmentString = [NSMutableAttributedString new];
       [attachmentString appendAttributedString:[NSAttributedString attributedStringWithAttachment:attachment]];
       [attachmentString addAttribute:RCTShadowViewAttributeName value:child range:(NSRange){0, attachmentString.length}];
