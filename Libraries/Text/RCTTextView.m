@@ -423,6 +423,7 @@ static NSAttributedString *removeReactTagFromString(NSAttributedString *string)
     [self _setPlaceholderVisibility];
     [self updateContentSize]; //keep the text wrapping when the length of
     //the textline has been extended longer than the length of textinputView
+    [self textViewDidChange:_textView];
   } else if (eventLag > RCTTextUpdateLagWarningThreshold) {
     RCTLogWarn(@"Native TextInput(%@) is %zd events ahead of JS - try to make your JS faster.", self.text, eventLag);
   }
