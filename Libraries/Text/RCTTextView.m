@@ -125,6 +125,8 @@ RCT_NOT_IMPLEMENTED(- (instancetype)initWithCoder:(NSCoder *)aDecoder)
       attrs[NSBackgroundColorAttributeName] = subview.backgroundColor;
       _textView.typingAttributes = attrs;
     }
+
+    [self performTextUpdate];
   }
 }
 
@@ -133,6 +135,7 @@ RCT_NOT_IMPLEMENTED(- (instancetype)initWithCoder:(NSCoder *)aDecoder)
   [super removeReactSubview:subview];
   if (_richTextView == subview) {
     _richTextView = nil;
+    [self performTextUpdate];
   }
 }
 
@@ -271,6 +274,7 @@ static NSAttributedString *removeReactTagFromString(NSAttributedString *string)
       NSFontAttributeName : (_textView.font ? _textView.font : [self defaultPlaceholderFont]),
       NSForegroundColorAttributeName : _placeholderTextColor
     }];
+    _placeholderView.textAlignment = _textView.textAlignment;
 
     [self insertSubview:_placeholderView belowSubview:_textView];
     [self _setPlaceholderVisibility];
