@@ -132,11 +132,10 @@ static css_dim_t RCTMeasure(void *context, float width, css_measure_mode_t width
       if (isUndefined(width) || isUndefined(height)) {
         RCTLogError(@"Views nested within a <Text> must have a width and height");
       }
-      UIFont *font = [textStorage attribute:NSFontAttributeName atIndex:range.location effectiveRange:nil];
       CGRect glyphRect = [layoutManager boundingRectForGlyphRange:range inTextContainer:textContainer];
       CGRect childFrame = {{
         RCTRoundPixelValue(glyphRect.origin.x),
-        RCTRoundPixelValue(glyphRect.origin.y + glyphRect.size.height - height + font.descender)
+        RCTRoundPixelValue(glyphRect.origin.y + glyphRect.size.height - height)
       }, {
         RCTRoundPixelValue(width),
         RCTRoundPixelValue(height)
@@ -268,8 +267,9 @@ static css_dim_t RCTMeasure(void *context, float width, css_measure_mode_t width
       if (isUndefined(width) || isUndefined(height)) {
         RCTLogError(@"Views nested within a <Text> must have a width and height");
       }
+      NSLog(@"%f", font.descender);
       NSTextAttachment *attachment = [NSTextAttachment new];
-        attachment.bounds = (CGRect){{0, -font.descender}, {width, height}};
+      attachment.bounds = (CGRect){{0, 0}, {width, height}};
       NSMutableAttributedString *attachmentString = [NSMutableAttributedString new];
       [attachmentString appendAttributedString:[NSAttributedString attributedStringWithAttachment:attachment]];
       [attachmentString addAttribute:RCTShadowViewAttributeName value:child range:(NSRange){0, attachmentString.length}];
