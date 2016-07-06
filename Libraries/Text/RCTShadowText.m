@@ -267,7 +267,6 @@ static css_dim_t RCTMeasure(void *context, float width, css_measure_mode_t width
       if (isUndefined(width) || isUndefined(height)) {
         RCTLogError(@"Views nested within a <Text> must have a width and height");
       }
-      NSLog(@"%f", font.descender);
       NSTextAttachment *attachment = [NSTextAttachment new];
       attachment.bounds = (CGRect){{0, 0}, {width, height}};
       NSMutableAttributedString *attachmentString = [NSMutableAttributedString new];
