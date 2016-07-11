@@ -66,6 +66,9 @@ var SCENE_DISABLED_NATIVE_PROPS = {
     opacity: 0,
   },
 };
+var SCENE_DISABLED_VISIBLE_NATIVE_PROPS = {
+  pointerEvents: 'none',
+};
 
 var __uid = 0;
 function getuid() {
@@ -532,8 +535,14 @@ var Navigator = React.createClass({
    * Push a scene off the screen, so that opacity:0 scenes will not block touches sent to the presented scenes
    */
   _disableScene: function(sceneIndex) {
-    this.refs['scene_' + sceneIndex] &&
-      this.refs['scene_' + sceneIndex].setNativeProps(SCENE_DISABLED_NATIVE_PROPS);
+      var sceneConstructor = this.refs['scene_' + sceneIndex];
+      var nextRoute = this.state.routeStack[sceneIndex + 1];
+
+      if (nextRoute && nextRoute.sceneOptions && nextRoute.sceneOptions.retainPreviousView) {
+          sceneConstructor.setNativeProps(SCENE_DISABLED_VISIBLE_NATIVE_PROPS);
+      } else {
+          sceneConstructor.setNativeProps(SCENE_DISABLED_NATIVE_PROPS);
+      }
   },
 
   /**
