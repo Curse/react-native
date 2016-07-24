@@ -206,7 +206,11 @@ public class WebSocketModule extends ReactContextBaseJavaModule {
     WebSocket client = mWebSocketConnections.get(id);
     if (client == null) {
       // This is a programmer error
-      throw new RuntimeException("Cannot send a message. Unknown WebSocket id " + id);
+      //throw new RuntimeException("Cannot send a message. Unknown WebSocket id " + id + " message: " + message);
+
+      // We don't want to throw an exception here because the web socket could be disconnected
+      // asynchronously before it gets here and after we check if it's connected in JS
+      return;
     }
     try {
       client.sendMessage(RequestBody.create(WebSocket.TEXT, message));
@@ -220,7 +224,10 @@ public class WebSocketModule extends ReactContextBaseJavaModule {
     WebSocket client = mWebSocketConnections.get(id);
     if (client == null) {
       // This is a programmer error
-      throw new RuntimeException("Cannot send a message. Unknown WebSocket id " + id);
+      // throw new RuntimeException("Cannot send a message. Unknown WebSocket id " + id);
+
+      // We don't want to throw an exception here because the web socket could be disconnected
+      // asynchronously before it gets here and after we check if it's connected in JS
     }
     try {
       client.sendMessage(RequestBody.create(WebSocket.BINARY, ByteString.decodeBase64(base64String)));
@@ -234,7 +241,10 @@ public class WebSocketModule extends ReactContextBaseJavaModule {
     WebSocket client = mWebSocketConnections.get(id);
     if (client == null) {
       // This is a programmer error
-      throw new RuntimeException("Cannot send a message. Unknown WebSocket id " + id);
+      // throw new RuntimeException("Cannot send a message. Unknown WebSocket id " + id);
+
+      // We don't want to throw an exception here because the web socket could be disconnected
+      // asynchronously before it gets here and after we check if it's connected in JS
     }
     try {
       Buffer buffer = new Buffer();
