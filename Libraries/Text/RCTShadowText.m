@@ -155,7 +155,7 @@ static css_dim_t RCTMeasure(void *context, float width, css_measure_mode_t width
       CGFloat adjustedFontSize = [adjustedFontDescriptor pointSize];
       CGRect glyphRect = [layoutManager boundingRectForGlyphRange:range inTextContainer:textContainer];
       BOOL shouldAdjustY = [self reactSubviews].count == 1;
-      if (height < adjustedFontSize) {
+      if (height < adjustedFontSize && (width / height) <= 2) {
         width = (adjustedFontSize / width) * width;
         height = (adjustedFontSize / height) * height;
       }
@@ -301,7 +301,7 @@ static css_dim_t RCTMeasure(void *context, float width, css_measure_mode_t width
       }
       UIFontDescriptor *fontDescriptor = [UIFontDescriptor preferredFontDescriptorWithTextStyle:UIFontTextStyleBody];
       CGFloat adjustedFontSize = [fontDescriptor pointSize];
-      if (height < adjustedFontSize) {
+      if (height < adjustedFontSize && (width / height) <= 2) {
         width = (adjustedFontSize / width) * width;
         height = (adjustedFontSize / height) * height;
       }
