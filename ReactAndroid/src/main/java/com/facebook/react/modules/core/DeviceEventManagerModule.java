@@ -42,7 +42,8 @@ public class DeviceEventManagerModule extends ReactContextBaseJavaModule {
       @Override
       public void run() {
         UiThreadUtil.assertOnUiThread();
-        backBtnHandler.invokeDefaultOnBackPressed();
+        //backBtnHandler.invokeDefaultOnBackPressed();
+        getCurrentActivity().moveTaskToBack(true);
       }
     };
   }
