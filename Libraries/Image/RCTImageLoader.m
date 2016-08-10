@@ -313,7 +313,7 @@ static UIImage *RCTResizeImageIfNeeded(UIImage *image,
       }
       @catch (NSException *exception) {
         if (completionBlock) {
-          completionBlock(RCTErrorWithMessage(e.name), imageOrData);
+          completionBlock(RCTErrorWithMessage(exception.name), imageOrData);
         }
       }
     };
