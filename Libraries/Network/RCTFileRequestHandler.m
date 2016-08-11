@@ -40,6 +40,7 @@ RCT_EXPORT_MODULE()
   if (!_fileQueue) {
     _fileQueue = [NSOperationQueue new];
     _fileQueue.maxConcurrentOperationCount = 4;
+    _fileQueue.qualityOfService = NSOperationQualityOfServiceUtility;
   }
 
   __weak __block NSBlockOperation *weakOp;
