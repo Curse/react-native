@@ -242,9 +242,11 @@ RCT_NOT_IMPLEMENTED(- (instancetype)init)
                                       resizeMode:_resizeMode
                                    progressBlock:progressHandler
                                  completionBlock:^(NSError *error, UIImage *loadedImage) {
-
-      RCTImageView *strongSelf = weakSelf;
       void (^setImageBlock)(UIImage *) = ^(UIImage *image) {
+        __strong RCTImageView *strongSelf = weakSelf;
+        if (!strongSelf) {
+          return;
+        }
         if (![source isEqual:strongSelf.source]) {
           // Bail out if source has changed since we started loading
           return;

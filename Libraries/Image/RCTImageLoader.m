@@ -455,6 +455,12 @@ static UIImage *RCTResizeImageIfNeeded(UIImage *image,
             
             dispatch_async(_URLCacheQueue, ^{
               @try {
+                if (!strongSelf) {
+                  if (completionHandler) {
+                    completionHandler(RCTErrorWithMessage(@"No self"), data);
+                  }
+                  return;
+                }
                 // Cache the response
                 // TODO: move URL cache out of RCTImageLoader into its own module
                 BOOL isHTTPRequest = [request.URL.scheme hasPrefix:@"http"];
@@ -660,14 +666,19 @@ static UIImage *RCTResizeImageIfNeeded(UIImage *image,
         if (!_URLCacheQueue) {
             [self setUp];
         }
+      __weak RCTImageLoader *weakSelf = self;
         dispatch_async(_URLCacheQueue, ^{
             dispatch_block_t decodeBlock = ^{
-                
+              __strong RCTImageLoader *strongSelf = weakSelf;
+              if (!strongSelf) {
+                return;
+              }
+              
                 // Calculate the size, in bytes, that the decompressed image will require
                 NSInteger decodedImageBytes = (size.width * scale) * (size.height * scale) * 4;
                 
                 // Mark these bytes as in-use
-                _activeBytes += decodedImageBytes;
+                strongSelf->_activeBytes += decodedImageBytes;
                 
                 // Do actual decompression on a concurrent background queue
                 dispatch_async(dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_DEFAULT, 0), ^{
@@ -701,27 +712,36 @@ static UIImage *RCTResizeImageIfNeeded(UIImage *image,
                     // We're no longer retaining the uncompressed data, so now we'll mark
                     // the decoding as complete so that the loading task queue can resume.
                     dispatch_async(_URLCacheQueue, ^{
-                        _scheduledDecodes--;
-                        _activeBytes -= decodedImageBytes;
-                        [self dequeueTasks];
+                      __strong RCTImageLoader *innerStrongSelf = weakSelf;
+                      if (!innerStrongSelf) {
+                        return;
+                      }
+                        innerStrongSelf->_scheduledDecodes--;
+                        innerStrongSelf->_activeBytes -= decodedImageBytes;
+                        [innerStrongSelf dequeueTasks];
                     });
                 });
             };
-            
+          
+          __strong RCTImageLoader *strongSelf = weakSelf;
+          if (!strongSelf) {
+            return;
+          }
+          
             // The decode operation retains the compressed image data until it's
             // complete, so we'll mark it as having started, in order to block
             // further image loads from happening until we're done with the data.
-            _scheduledDecodes++;
+            strongSelf->_scheduledDecodes++;
             
-            if (!_pendingDecodes) {
-                _pendingDecodes = [NSMutableArray new];
+            if (!strongSelf->_pendingDecodes) {
+                strongSelf->_pendingDecodes = [NSMutableArray new];
             }
-            NSInteger activeDecodes = _scheduledDecodes - _pendingDecodes.count - 1;
-            if (activeDecodes == 0 || (_activeBytes <= _maxConcurrentDecodingBytes &&
-                                       activeDecodes <= _maxConcurrentDecodingTasks)) {
+            NSInteger activeDecodes = strongSelf->_scheduledDecodes - strongSelf->_pendingDecodes.count - 1;
+            if (activeDecodes == 0 || (strongSelf->_activeBytes <= strongSelf->_maxConcurrentDecodingBytes &&
+                                       activeDecodes <= strongSelf->_maxConcurrentDecodingTasks)) {
                 decodeBlock();
             } else {
-                [_pendingDecodes addObject:decodeBlock];
+                [strongSelf->_pendingDecodes addObject:decodeBlock];
             }
             
         });
@@ -755,7 +775,9 @@ static UIImage *RCTResizeImageIfNeeded(UIImage *image,
                                            image.size.height * image.scale,
                                        };
                                    }
-                                   completionBlock(error, size);
+                                   if (completionBlock) {
+                                     completionBlock(error, size);
+                                   }
                                }];
 }
 
@@ -781,7 +803,9 @@ static UIImage *RCTResizeImageIfNeeded(UIImage *image,
     __block RCTImageLoaderCancellationBlock requestToken;
     requestToken = [self loadImageWithURLRequest:request callback:^(NSError *error, UIImage *image) {
         if (error) {
+          if (delegate) {
             [delegate URLRequest:requestToken didCompleteWithError:error];
+          }
             return;
         }
         
@@ -799,10 +823,11 @@ static UIImage *RCTResizeImageIfNeeded(UIImage *image,
                                                             MIMEType:mimeType
                                                expectedContentLength:imageData.length
                                                     textEncodingName:nil];
-        
+      if (delegate) {
         [delegate URLRequest:requestToken didReceiveResponse:response];
         [delegate URLRequest:requestToken didReceiveData:imageData];
         [delegate URLRequest:requestToken didCompleteWithError:nil];
+      }
     }];
     
     return requestToken;

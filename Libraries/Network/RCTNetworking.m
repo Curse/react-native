@@ -284,10 +284,14 @@ RCT_EXPORT_MODULE()
   }
   NSURLRequest *request = [RCTConvert NSURLRequest:query[@"uri"]];
   if (request) {
-
+    __weak RCTNetworking *weakSelf = self;
     __block RCTURLRequestCancellationBlock cancellationBlock = nil;
     RCTNetworkTask *task = [self networkTaskWithRequest:request completionBlock:^(NSURLResponse *response, NSData *data, NSError *error) {
-      dispatch_async(_methodQueue, ^{
+      __strong RCTNetworking *strongSelf = weakSelf;
+      if (!strongSelf || !strongSelf->_methodQueue) {
+        return;
+      }
+      dispatch_async(strongSelf->_methodQueue, ^{
         cancellationBlock = callback(error, data ? @{@"body": data, @"contentType": RCTNullIfNil(response.MIMEType)} : nil);
       });
     }];
@@ -296,7 +300,9 @@ RCT_EXPORT_MODULE()
 
     __weak RCTNetworkTask *weakTask = task;
     return ^{
-      [weakTask cancel];
+      if (weakTask) {
+        [weakTask cancel];
+      }
       if (cancellationBlock) {
         cancellationBlock();
       }
@@ -363,16 +369,24 @@ RCT_EXPORT_MODULE()
   RCTAssertThread(_methodQueue, @"sendRequest: must be called on method queue");
 
   __block RCTNetworkTask *task;
-
+  __weak RCTNetworking *weakSelf = self;
+  
   RCTURLRequestProgressBlock uploadProgressBlock = ^(int64_t progress, int64_t total) {
-    dispatch_async(_methodQueue, ^{
-      NSArray *responseJSON = @[task.requestID, @((double)progress), @((double)total)];
-      [self sendEventWithName:@"didSendNetworkData" body:responseJSON];
-    });
+    __strong RCTNetworking *strongSelf = weakSelf;
+    if (strongSelf && task && strongSelf->_methodQueue) {
+      dispatch_async(strongSelf->_methodQueue, ^{
+        NSArray *responseJSON = @[task.requestID, @((double)progress), @((double)total)];
+        [strongSelf sendEventWithName:@"didSendNetworkData" body:responseJSON];
+      });
+    }
   };
 
   void (^responseBlock)(NSURLResponse *) = ^(NSURLResponse *response) {
-    dispatch_async(_methodQueue, ^{
+    __strong RCTNetworking *strongSelf = weakSelf;
+    if (!strongSelf || !task || !strongSelf->_methodQueue) {
+      return;
+    }
+    dispatch_async(strongSelf->_methodQueue, ^{
       NSDictionary<NSString *, NSString *> *headers;
       NSInteger status;
       if ([response isKindOfClass:[NSHTTPURLResponse class]]) { // Might be a local file request
@@ -385,28 +399,36 @@ RCT_EXPORT_MODULE()
       }
       id responseURL = response.URL ? response.URL.absoluteString : [NSNull null];
       NSArray<id> *responseJSON = @[task.requestID, @(status), headers, responseURL];
-      [self sendEventWithName:@"didReceiveNetworkResponse" body:responseJSON];
+      [strongSelf sendEventWithName:@"didReceiveNetworkResponse" body:responseJSON];
     });
   };
 
   void (^incrementalDataBlock)(NSData *) = incrementalUpdates ? ^(NSData *data) {
-    dispatch_async(_methodQueue, ^{
-      [self sendData:data forTask:task];
+    __strong RCTNetworking *strongSelf = weakSelf;
+    if (!strongSelf || !strongSelf->_methodQueue) {
+      return;
+    }
+    dispatch_async(strongSelf->_methodQueue, ^{
+      [strongSelf sendData:data forTask:task];
     });
   } : nil;
 
   RCTURLRequestCompletionBlock completionBlock =
   ^(NSURLResponse *response, NSData *data, NSError *error) {
-    dispatch_async(_methodQueue, ^{
+    __strong RCTNetworking *strongSelf = weakSelf;
+    if (!strongSelf || !task || !strongSelf->_methodQueue) {
+      return;
+    }
+    dispatch_async(strongSelf->_methodQueue, ^{
       if (!incrementalUpdates) {
-        [self sendData:data forTask:task];
+        [strongSelf sendData:data forTask:task];
       }
       NSArray *responseJSON = @[task.requestID,
                                 RCTNullIfNil(error.localizedDescription),
                                 error.code == kCFURLErrorTimedOut ? @YES : @NO
                                 ];
 
-      [self sendEventWithName:@"didCompleteNetworkResponse" body:responseJSON];
+      [strongSelf sendEventWithName:@"didCompleteNetworkResponse" body:responseJSON];
       [_tasksByRequestID removeObjectForKey:task.requestID];
     });
   };

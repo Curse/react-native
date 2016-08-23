@@ -51,9 +51,13 @@ RCT_EXPORT_METHOD(getSize:(NSURLRequest *)request
   [self.bridge.imageLoader getImageSizeForURLRequest:request
                                   block:^(NSError *error, CGSize size) {
                                     if (error) {
-                                      errorBlock(error);
+                                      if (errorBlock) {
+                                        errorBlock(error);
+                                      }
                                     } else {
-                                      successBlock(@[@(size.width), @(size.height)]);
+                                      if (successBlock) {
+                                        successBlock(@[@(size.width), @(size.height)]);
+                                      }
                                     }
                                   }];
 }
@@ -70,10 +74,14 @@ RCT_EXPORT_METHOD(prefetchImage:(NSURLRequest *)request
   [self.bridge.imageLoader loadImageWithURLRequest:request
                                           callback:^(NSError *error, UIImage *image) {
                                             if (error) {
-                                              reject(@"E_PREFETCH_FAILURE", nil, error);
+                                              if (reject) {
+                                                reject(@"E_PREFETCH_FAILURE", nil, error);
+                                              }
                                               return;
                                             }
-                                            resolve(@YES);
+                                            if (resolve) {
+                                              resolve(@YES);
+                                            }
                                           }];
 }
 
