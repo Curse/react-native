@@ -234,7 +234,7 @@ static UIImage *RCTResizeImageIfNeeded(UIImage *image,
     __weak RCTImageLoader *weakSelf = self;
     dispatch_async(_URLCacheQueue, ^{
         __strong RCTImageLoader *strongSelf = weakSelf;
-        if (!strongSelf || !strongSelf->_pendingTasks || !strongSelf->_activeTasks || !strongSelf->_pendingDecodes) {
+        if (!strongSelf || !strongSelf->_pendingTasks) {
           return;
         }
         // Remove completed tasks
