@@ -17,6 +17,7 @@
 #import "RCTLog.h"
 #import "RCTModuleData.h"
 #import "RCTPerformanceLogger.h"
+#import "RCTProfile.h"
 #import "RCTUtils.h"
 
 NSString *const RCTReloadNotification = @"RCTReloadNotification";
@@ -110,30 +111,35 @@ static RCTBridge *RCTCurrentBridgeInstance = nil;
 - (instancetype)initWithDelegate:(id<RCTBridgeDelegate>)delegate
                    launchOptions:(NSDictionary *)launchOptions
 {
-  if ((self = [super init])) {
-    RCTPerformanceLoggerStart(RCTPLBridgeStartup);
-    RCTPerformanceLoggerStart(RCTPLTTI);
-
-    _delegate = delegate;
-    _launchOptions = [launchOptions copy];
-    [self setUp];
-    RCTExecuteOnMainQueue(^{ [self bindKeys]; });
-  }
-  return self;
+  return [self initWithDelegate:delegate
+                      bundleURL:nil
+                 moduleProvider:nil
+                  launchOptions:launchOptions];
 }
 
 - (instancetype)initWithBundleURL:(NSURL *)bundleURL
                    moduleProvider:(RCTBridgeModuleProviderBlock)block
                     launchOptions:(NSDictionary *)launchOptions
 {
-  if ((self = [super init])) {
-    RCTPerformanceLoggerStart(RCTPLBridgeStartup);
-    RCTPerformanceLoggerStart(RCTPLTTI);
+  return [self initWithDelegate:nil
+                      bundleURL:bundleURL
+                 moduleProvider:block
+                  launchOptions:launchOptions];
+}
 
+- (instancetype)initWithDelegate:(id<RCTBridgeDelegate>)delegate
+                       bundleURL:(NSURL *)bundleURL
+                  moduleProvider:(RCTBridgeModuleProviderBlock)block
+                   launchOptions:(NSDictionary *)launchOptions
+{
+  if (self = [super init]) {
+    _delegate = delegate;
     _bundleURL = bundleURL;
     _moduleProvider = block;
     _launchOptions = [launchOptions copy];
+
     [self setUp];
+
     RCTExecuteOnMainQueue(^{ [self bindKeys]; });
   }
   return self;
@@ -171,8 +177,12 @@ RCT_NOT_IMPLEMENTED(- (instancetype)init)
                                                         object:nil
                                                       userInfo:nil];
   }];
-
 #endif
+}
+
+- (RCTPerformanceLogger *)performanceLogger
+{
+  return self.batchedBridge.performanceLogger;
 }
 
 - (NSArray<Class> *)moduleClasses
@@ -209,6 +219,11 @@ RCT_NOT_IMPLEMENTED(- (instancetype)init)
   return [self.batchedBridge moduleIsInitialized:moduleClass];
 }
 
+- (void)whitelistedModulesDidChange
+{
+  [self.batchedBridge whitelistedModulesDidChange];
+}
+
 - (void)reload
 {
   /**
@@ -222,6 +237,8 @@ RCT_NOT_IMPLEMENTED(- (instancetype)init)
 
 - (void)setUp
 {
+  RCT_PROFILE_BEGIN_EVENT(0, @"-[RCTBridge setUp]", nil);
+
   // Only update bundleURL from delegate if delegate bundleURL has changed
   NSURL *previousDelegateURL = _delegateBundleURL;
   _delegateBundleURL = [self.delegate sourceURLForBridge:self];
@@ -233,6 +250,8 @@ RCT_NOT_IMPLEMENTED(- (instancetype)init)
   _bundleURL = [RCTConvert NSURL:_bundleURL.absoluteString];
 
   [self createBatchedBridge];
+
+  RCT_PROFILE_END_EVENT(0, @"", nil);
 }
 
 - (void)createBatchedBridge
@@ -269,7 +288,15 @@ RCT_NOT_IMPLEMENTED(- (instancetype)init)
 
 - (void)enqueueJSCall:(NSString *)moduleDotMethod args:(NSArray *)args
 {
-  [self.batchedBridge enqueueJSCall:moduleDotMethod args:args];
+  NSArray<NSString *> *ids = [moduleDotMethod componentsSeparatedByString:@"."];
+  NSString *module = ids[0];
+  NSString *method = ids[1];
+  [self enqueueJSCall:module method:method args:args completion:NULL];
+}
+
+- (void)enqueueJSCall:(NSString *)module method:(NSString *)method args:(NSArray *)args completion:(dispatch_block_t)completion
+{
+  [self.batchedBridge enqueueJSCall:module method:method args:args completion:completion];
 }
 
 - (void)enqueueCallback:(NSNumber *)cbID args:(NSArray *)args

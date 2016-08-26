@@ -31,8 +31,8 @@ import android.content.IntentFilter;
 import android.content.pm.PackageInfo;
 import android.content.pm.PackageManager;
 import android.hardware.SensorManager;
-import android.os.Debug;
-import android.os.Environment;
+import android.net.Uri;
+import android.os.AsyncTask;
 import android.view.WindowManager;
 import android.widget.Toast;
 
@@ -45,12 +45,16 @@ import com.facebook.react.bridge.JavaJSExecutor;
 import com.facebook.react.bridge.ReactContext;
 import com.facebook.react.bridge.ReadableArray;
 import com.facebook.react.bridge.UiThreadUtil;
-import com.facebook.react.bridge.WebsocketJavaScriptExecutor;
 import com.facebook.react.common.ReactConstants;
 import com.facebook.react.common.ShakeDetector;
 import com.facebook.react.common.futures.SimpleSettableFuture;
 import com.facebook.react.devsupport.StackTraceHelper.StackFrame;
 import com.facebook.react.modules.debug.DeveloperSettings;
+
+import okhttp3.MediaType;
+import okhttp3.OkHttpClient;
+import okhttp3.Request;
+import okhttp3.RequestBody;
 
 /**
  * Interface for accessing and interacting with development features. Following features
@@ -81,6 +85,7 @@ import com.facebook.react.modules.debug.DeveloperSettings;
 public class DevSupportManagerImpl implements DevSupportManager {
 
   private static final int JAVA_ERROR_COOKIE = -1;
+  private static final int JSEXCEPTION_ERROR_COOKIE = -1;
   private static final String JS_BUNDLE_FILE_NAME = "ReactNativeDevBundle.js";
   private static enum ErrorType {
     JS,
@@ -110,6 +115,44 @@ public class DevSupportManagerImpl implements DevSupportManager {
   private boolean mIsShakeDetectorStarted = false;
   private boolean mIsDevSupportEnabled = false;
   private @Nullable RedBoxHandler mRedBoxHandler;
+  private @Nullable String mLastErrorTitle;
+  private @Nullable StackFrame[] mLastErrorStack;
+  private int mLastErrorCookie = 0;
+  private @Nullable ErrorType mLastErrorType;
+
+
+  private static class JscProfileTask extends AsyncTask<String, Void, Void> {
+    private static final MediaType JSON =
+      MediaType.parse("application/json; charset=utf-8");
+
+    private final String mSourceUrl;
+
+    private JscProfileTask(String sourceUrl) {
+      mSourceUrl = sourceUrl;
+    }
+
+    @Override
+    protected Void doInBackground(String... jsonData) {
+      try {
+        String jscProfileUrl =
+            Uri.parse(mSourceUrl).buildUpon()
+                .path("/jsc-profile")
+                .query(null)
+                .build()
+                .toString();
+        OkHttpClient client = new OkHttpClient();
+        for (String json: jsonData) {
+          RequestBody body = RequestBody.create(JSON, json);
+          Request request =
+            new Request.Builder().url(jscProfileUrl).post(body).build();
+          client.newCall(request).execute();
+        }
+      } catch (IOException e) {
+        FLog.e(ReactConstants.TAG, "Failed not talk to server", e);
+      }
+      return null;
+    }
+  }
 
   public DevSupportManagerImpl(
     Context applicationContext,
@@ -191,8 +234,14 @@ public class DevSupportManagerImpl implements DevSupportManager {
   @Override
   public void handleException(Exception e) {
     if (mIsDevSupportEnabled) {
-      FLog.e(ReactConstants.TAG, "Exception in native call from JS", e);
-      showNewJavaError(e.getMessage(), e);
+      if (e instanceof JSException) {
+        FLog.e(ReactConstants.TAG, "Exception in native call from JS", e);
+        // TODO #11638796: convert the stack into something useful
+        showNewError(e.getMessage() + "\n\n" + ((JSException) e).getStack(), new StackFrame[] {},
+                     JSEXCEPTION_ERROR_COOKIE, ErrorType.JS);
+      } else {
+        showNewJavaError(e.getMessage(), e);
+      }
     } else {
       mDefaultNativeModuleCallExceptionHandler.handleException(e);
     }
@@ -200,6 +249,7 @@ public class DevSupportManagerImpl implements DevSupportManager {
 
   @Override
   public void showNewJavaError(String message, Throwable e) {
+    FLog.e(ReactConstants.TAG, "Exception in native call", e);
     showNewError(message, StackTraceHelper.convertJavaStackTrace(e), JAVA_ERROR_COOKIE, ErrorType.NATIVE);
   }
 
@@ -234,15 +284,16 @@ public class DevSupportManagerImpl implements DevSupportManager {
             // belongs to the most recent showNewJSError
             if (mRedBoxDialog == null ||
                 !mRedBoxDialog.isShowing() ||
-                errorCookie != mRedBoxDialog.getErrorCookie()) {
+                errorCookie != mLastErrorCookie) {
               return;
             }
             StackFrame[] stack = StackTraceHelper.convertJsStackTrace(details);
             mRedBoxDialog.setExceptionDetails(message, stack);
-            mRedBoxDialog.setErrorCookie(errorCookie);
+            updateLastErrorInfo(message, stack, errorCookie, ErrorType.JS);
             // JS errors are reported here after source mapping.
             if (mRedBoxHandler != null) {
               mRedBoxHandler.handleRedbox(message, stack, RedBoxHandler.ErrorType.JS);
+              mRedBoxDialog.resetReporting(true);
             }
             mRedBoxDialog.show();
           }
@@ -267,7 +318,7 @@ public class DevSupportManagerImpl implements DevSupportManager {
           @Override
           public void run() {
             if (mRedBoxDialog == null) {
-              mRedBoxDialog = new RedBoxDialog(mApplicationContext, DevSupportManagerImpl.this);
+              mRedBoxDialog = new RedBoxDialog(mApplicationContext, DevSupportManagerImpl.this, mRedBoxHandler);
               mRedBoxDialog.getWindow().setType(WindowManager.LayoutParams.TYPE_SYSTEM_ALERT);
             }
             if (mRedBoxDialog.isShowing()) {
@@ -276,11 +327,14 @@ public class DevSupportManagerImpl implements DevSupportManager {
               return;
             }
             mRedBoxDialog.setExceptionDetails(message, stack);
-            mRedBoxDialog.setErrorCookie(errorCookie);
+            updateLastErrorInfo(message, stack, errorCookie, errorType);
             // Only report native errors here. JS errors are reported
             // inside {@link #updateJSError} after source mapping.
             if (mRedBoxHandler != null && errorType == ErrorType.NATIVE) {
               mRedBoxHandler.handleRedbox(message, stack, RedBoxHandler.ErrorType.NATIVE);
+              mRedBoxDialog.resetReporting(true);
+            } else {
+              mRedBoxDialog.resetReporting(false);
             }
             mRedBoxDialog.show();
           }
@@ -357,16 +411,32 @@ public class DevSupportManagerImpl implements DevSupportManager {
         new DevOptionHandler() {
           @Override
           public void onOptionSelected() {
+            JSCHeapCapture.captureHeap(
+              mApplicationContext.getCacheDir().getPath(),
+              JSCHeapUpload.captureCallback(mDevServerHelper.getHeapCaptureUploadUrl()));
+          }
+        });
+    options.put(
+        mApplicationContext.getString(R.string.catalyst_poke_sampling_profiler),
+        new DevOptionHandler() {
+          @Override
+          public void onOptionSelected() {
             try {
-              String heapDumpPath = mApplicationContext.getCacheDir().getPath();
-              List<String> captureFiles = JSCHeapCapture.captureHeap(heapDumpPath, 60000);
-              for (String captureFile : captureFiles) {
+              List<String> pokeResults = JSCSamplingProfiler.poke(60000);
+              for (String result : pokeResults) {
                 Toast.makeText(
                   mCurrentContext,
-                  "Heap captured to " + captureFile,
+                  result == null
+                    ? "Started JSC Sampling Profiler"
+                    : "Stopped JSC Sampling Profiler",
                   Toast.LENGTH_LONG).show();
+                if (result != null) {
+                  new JscProfileTask(getSourceUrl()).executeOnExecutor(
+                      AsyncTask.THREAD_POOL_EXECUTOR,
+                      result);
+                }
               }
-            } catch (JSCHeapCapture.CaptureException e) {
+            } catch (JSCSamplingProfiler.ProfilerException e) {
               showNewJavaError(e.getMessage(), e);
             }
           }
@@ -471,6 +541,11 @@ public class DevSupportManagerImpl implements DevSupportManager {
   @Override
   public String getDownloadedJSBundleFile() {
     return mJSBundleTempFile.getAbsolutePath();
+  }
+
+  @Override
+  public String getHeapCaptureUploadUrl() {
+    return mDevServerHelper.getHeapCaptureUploadUrl();
   }
 
   /**
@@ -587,6 +662,27 @@ public class DevSupportManagerImpl implements DevSupportManager {
   @Override
   public void isPackagerRunning(DevServerHelper.PackagerStatusCallback callback) {
     mDevServerHelper.isPackagerRunning(callback);
+  }
+
+  @Override
+  public @Nullable String getLastErrorTitle() {
+    return mLastErrorTitle;
+  }
+
+  @Override
+  public @Nullable StackFrame[] getLastErrorStack() {
+    return mLastErrorStack;
+  }
+
+  private void updateLastErrorInfo(
+      final String message,
+      final StackFrame[] stack,
+      final int errorCookie,
+      final ErrorType errorType) {
+    mLastErrorTitle = message;
+    mLastErrorStack = stack;
+    mLastErrorCookie = errorCookie;
+    mLastErrorType = errorType;
   }
 
   private void reloadJSInProxyMode(final AlertDialog progressDialog) {

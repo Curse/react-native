@@ -31,8 +31,14 @@ function reportException(e: Error, isFatal: bool) {
     }
     if (__DEV__) {
       symbolicateStackTrace(stack).then(
-        (prettyStack) =>
-          RCTExceptionsManager.updateExceptionMessage(e.message, prettyStack, currentExceptionID),
+        (prettyStack) => {
+          if (prettyStack) {
+            RCTExceptionsManager.updateExceptionMessage(e.message, prettyStack, currentExceptionID);
+          } else {
+            throw new Error('The stack is null');
+          }
+        }
+      ).catch(
         (error) =>
           console.warn('Unable to symbolicate stack trace: ' + error.message)
       );
@@ -65,9 +71,11 @@ function installConsoleErrorReporter() {
   if (console._errorOriginal) {
     return; // already installed
   }
-  console._errorOriginal = console.error.bind(console);
+  // Flow doesn't like it when you set arbitrary values on a global object
+  (console: any)._errorOriginal = console.error.bind(console);
   console.error = function reactConsoleError() {
-    console._errorOriginal.apply(null, arguments);
+    // Flow doesn't like it when you set arbitrary values on a global object
+    (console: any)._errorOriginal.apply(null, arguments);
     if (!console.reportErrorsAsExceptions) {
       return;
     }
@@ -89,7 +97,8 @@ function installConsoleErrorReporter() {
     }
   };
   if (console.reportErrorsAsExceptions === undefined) {
-    console.reportErrorsAsExceptions = true; // Individual apps can disable this
+    // Flow doesn't like it when you set arbitrary values on a global object
+    (console: any).reportErrorsAsExceptions = true; // Individual apps can disable this
   }
 }
 

@@ -11,11 +11,12 @@
  */
 'use strict';
 
-var NativeMethodsMixin = require('NativeMethodsMixin');
+var NativeMethodsMixin = require('react/lib/NativeMethodsMixin');
 var NativeModules = require('NativeModules');
 var ImageResizeMode = require('ImageResizeMode');
 var ImageStylePropTypes = require('ImageStylePropTypes');
-var PropTypes = require('ReactPropTypes');
+var ViewStylePropTypes = require('ViewStylePropTypes');
+var PropTypes = require('react/lib/ReactPropTypes');
 var React = require('React');
 var ReactNativeViewAttributes = require('ReactNativeViewAttributes');
 var StyleSheet = require('StyleSheet');
@@ -26,10 +27,17 @@ var flattenStyle = require('flattenStyle');
 var merge = require('merge');
 var requireNativeComponent = require('requireNativeComponent');
 var resolveAssetSource = require('resolveAssetSource');
+var Set = require('Set');
+var filterObject = require('fbjs/lib/filterObject');
 
 var {
   ImageLoader,
 } = NativeModules;
+
+let _requestId = 1;
+function generateRequestId() {
+  return _requestId++;
+}
 
 /**
  * <Image> - A react component for displaying different types of images,
@@ -62,6 +70,9 @@ var ImageViewAttributes = merge(ReactNativeViewAttributes.UIView, {
   fadeDuration: true,
   shouldNotifyLoadEvents: true,
 });
+
+var ViewStyleKeys = new Set(Object.keys(ViewStylePropTypes));
+var ImageSpecificStyleKeys = new Set(Object.keys(ImageStylePropTypes).filter(x => !ViewStyleKeys.has(x)));
 
 var Image = React.createClass({
   propTypes: {
@@ -119,6 +130,26 @@ var Image = React.createClass({
      * Used to locate this view in end-to-end tests.
      */
     testID: PropTypes.string,
+    /**
+     * Determines how to resize the image when the frame doesn't match the raw
+     * image dimensions.
+     *
+     * 'cover': Scale the image uniformly (maintain the image's aspect ratio)
+     * so that both dimensions (width and height) of the image will be equal
+     * to or larger than the corresponding dimension of the view (minus padding).
+     *
+     * 'contain': Scale the image uniformly (maintain the image's aspect ratio)
+     * so that both dimensions (width and height) of the image will be equal to
+     * or less than the corresponding dimension of the view (minus padding).
+     *
+     * 'stretch': Scale width and height independently, This may change the
+     * aspect ratio of the src.
+     *
+     * 'center': Scale the image down so that it is completely visible,
+     * if bigger than the area of the view.
+     * The image will not be scaled up.
+     */
+    resizeMode: PropTypes.oneOf(['cover', 'contain', 'stretch', 'center']),
   },
 
   statics: {
@@ -142,8 +173,17 @@ var Image = React.createClass({
      * Prefetches a remote image for later use by downloading it to the disk
      * cache
      */
-    prefetch(url: string) {
-      return ImageLoader.prefetchImage(url);
+    prefetch(url: string, callback: ?Function) {
+      const requestId = generateRequestId();
+      callback && callback(requestId);
+      return ImageLoader.prefetchImage(url, requestId);
+    },
+
+    /**
+     * Abort prefetch request
+     */
+    abortPrefetch(requestId: number) {
+      ImageLoader.abortRequest(requestId);
     },
   },
 
@@ -222,12 +262,15 @@ var Image = React.createClass({
 
       if (nativeProps.children) {
         // TODO(6033040): Consider implementing this as a separate native component
+        const containerStyle = filterObject(style, (val, key) => !ImageSpecificStyleKeys.has(key));
+        const imageStyle = filterObject(style, (val, key) => ImageSpecificStyleKeys.has(key));
         const imageProps = merge(nativeProps, {
-          style: styles.absoluteImage,
+          style: [imageStyle, styles.absoluteImage],
           children: undefined,
         });
+
         return (
-          <View style={nativeProps.style}>
+          <View style={containerStyle}>
             <RKImage {...imageProps}/>
             {this.props.children}
           </View>

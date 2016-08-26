@@ -13,7 +13,7 @@ const Promise = require('promise');
 const crypto = require('crypto');
 const declareOpts = require('../lib/declareOpts');
 const fs = require('fs');
-const getAssetDataFromName = require('node-haste').getAssetDataFromName;
+const getAssetDataFromName = require('../node-haste').getAssetDataFromName;
 const path = require('path');
 
 const createTimeoutPromise = (timeout) => new Promise((resolve, reject) => {
@@ -28,9 +28,11 @@ function timeoutableDenodeify(fsFunc, timeout) {
   };
 }
 
-const stat = timeoutableDenodeify(fs.stat, 5000);
-const readDir = timeoutableDenodeify(fs.readdir, 5000);
-const readFile = timeoutableDenodeify(fs.readFile, 5000);
+const FS_OP_TIMEOUT = parseInt(process.env.REACT_NATIVE_FSOP_TIMEOUT, 10) || 15000;
+
+const stat = timeoutableDenodeify(fs.stat, FS_OP_TIMEOUT);
+const readDir = timeoutableDenodeify(fs.readdir, FS_OP_TIMEOUT);
+const readFile = timeoutableDenodeify(fs.readFile, FS_OP_TIMEOUT);
 
 const validateOpts = declareOpts({
   projectRoots: {

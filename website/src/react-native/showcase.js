@@ -10,14 +10,14 @@
 /*
 Thousands of applications use React Native, so we can't list all of them
 in our showcase. To be useful to someone looking through the showcase,
-either the app must be something that a significant number of readers would recognize, or the makers of the application must have posted something valuable technically about the making of the app. So, one of the following should hold:
+either the app must be something that most readers would recognize, or the makers of the application must have
+posted useful technical content about the making of the app. It also must be useful considering that the majority
+of readers only speak English. So, each app in the showcase should link to either:
 
-1/ The app is branded with a public company brand
-2/ The app received some publicity in top-tier news
-3/ The app is made by a funded startup
-4/ A popular piece of developer content discusses this app
+1/ An English-language news article discussing the app, built either by a funded startup or for a public company
+2/ An English-language technical post on a funded startup or public company blog discussing React Native
 
-For each app in the showcase, use infoLink and infoTitle to reference content that would be relevant to a React Native developer learning about this app.
+For each app in the showcase, use infoLink and infoTitle to reference this content.
 */
 
 var React = require('React');
@@ -54,6 +54,21 @@ var featured = [
     linkPlayStore: 'https://play.google.com/store/apps/details?id=com.facebook.f8',
     infoLink: 'http://makeitopen.com/tutorials/building-the-f8-app/planning/',
     infoTitle: 'Building the F8 App',
+  },
+  {
+    name: 'FanVision Bolt',
+    icon: 'http://a4.mzstatic.com/us/r30/Purple18/v4/94/b4/6e/94b46ee5-80e3-ff6e-513d-16da926b03a3/icon175x175.jpeg',
+    linkAppStore: 'https://itunes.apple.com/us/app/fanvision-bolt/id1081891275',
+    infoLink: 'https://www.youtube.com/watch?v=oWOcAXyDf0w',
+    infoTitle: 'FanVision Bolt accessory + app provide live audio/video and stats at NASCAR events',
+  },
+  {
+    name: 'Gyroscope',
+    icon: 'https://media.gyrosco.pe/images/magneto/180x180.png',
+    linkAppStore: 'https://itunes.apple.com/app/apple-store/id1104085053?pt=117927205&ct=website&mt=8',
+    infoLink: 'https://blog.gyrosco.pe/building-the-app-1dac1a97d253',
+    infoTitle: '"Building a visualization experience with React Native."',
+
   },
   {
     name: 'Discord',
@@ -112,6 +127,14 @@ var featured = [
     linkAppStore: 'https://itunes.apple.com/us/app/refinery29-this-am-top-breaking/id988472315?mt=8',
     infoLink: 'https://techcrunch.com/2016/02/01/refinery29-debuts-its-first-app-a-morning-news-round-up-called-refinery29-am/',
     infoTitle: 'Refinery29 debuts its first app',
+  },
+  {
+    name: 'TRED - Sell your car for more',
+    icon: 'http://a1.mzstatic.com/us/r30/Purple20/v4/b0/0c/07/b00c07d2-a057-06bc-6044-9fdab97f370f/icon175x175.jpeg',
+    linkAppStore:  'https://itunes.apple.com/us/app/tred-sell-my-car-for-more!/id1070071394?mt=8',
+    linkPlayStore:  'https://play.google.com/store/apps/details?id=com.tredmobile&hl=en',
+    infoLink: 'http://www.geekwire.com/2015/mobile-dealership-tred-raises-another-1m-to-help-used-car-owners-make-more-money/',
+    infoTitle: 'Sell your car for thousands more than Craigslist or the dealer with TRED',
   },
   {
     name: 'Bitt Wallet',
@@ -275,6 +298,35 @@ var featured = [
     linkAppStore: 'https://itunes.apple.com/us/app/wego-concerts-follow-friends/id869478093?mt=8',
     infoLink: 'http://www.nydailynews.com/life-style/wego-concerts-app-links-music-fans-article-1.2066776',
     infoTitle: 'Wego Concerts: Like the love child of Tinder and StubHub',
+  },
+  {
+    name: 'Bdsdiet',
+    icon: 'http://s3.ap-northeast-2.amazonaws.com/bdsdiet-bucket/media/store-icon.png',
+    linkPlayStore: 'https://play.google.com/store/apps/details?id=com.bdsdiet_app',
+    infoLink: 'https://www.crunchbase.com/organization/bds-diet#/entity',
+    infoTitle: 'Bdsdiet provides real estate brokerage services through web and live agents in Korea.',
+  },
+  {
+    name: '蜂鸟众包',
+    icon: 'http://img.wdjimg.com/mms/icon/v1/e/6e/687b129606504cd52632a8cc4ca816ee_256_256.png',
+    linkPlayStore: 'http://www.wandoujia.com/apps/me.ele.crowdsource',
+    linkAppStore: 'https://itunes.apple.com/cn/app/feng-niao-zhong-bao-jian-zhi/id1061034377?mt=8',
+    infoLink: 'https://elelogistics.github.io/about/Crowdsource-App-Write-In-React-Native.html',
+    infoTitle: '"Fengniao Crowdsource app" is a mobile app, developed by Eleme, Inc, for Fengniao Crowdsource, the largest crowdsourced logistics platform in China.',
+  },
+  {
+    name: '昨日热推',
+    icon: 'https://frontbin.com/images/apple-touch-icon.png',
+    linkAppStore: 'https://itunes.apple.com/cn/app/zuo-ri-re-tui/id1137163693?l=en&mt=8',
+    infoLink: 'https://www.zfanw.com/blog/developing-react-native-image-viewer-library.html',
+    infoTitle: 'Developing the react-native-image-viewer library',
+  },
+  {
+    name: 'Artsy – Collect and Bid on Fine Art & Design',
+    icon: 'https://raw.githubusercontent.com/artsy/eigen/master/Artsy/Resources/Images.xcassets/AppIcon.appiconset/AppIcon167.png',
+    linkAppStore: 'https://itunes.apple.com/us/app/artsy-collect-bid-on-fine/id703796080?mt=8',
+    infoLink: 'https://artsy.github.io/series/react-native-at-artsy/',
+    infoTitle: 'React Native at Artsy',
   },
 ];
 

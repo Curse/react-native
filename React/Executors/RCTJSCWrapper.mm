@@ -13,7 +13,6 @@
 #import <JavaScriptCore/JavaScriptCore.h>
 
 #import "RCTLog.h"
-#import "RCTPerformanceLogger.h"
 
 #include <dlfcn.h>
 
@@ -22,18 +21,18 @@ static void *RCTCustomLibraryHandler(void)
   static dispatch_once_t token;
   static void *handler;
   dispatch_once(&token, ^{
-    const char *path = [[[NSBundle mainBundle] pathForResource:@"JavaScriptCore"
-                                                        ofType:nil
-                                                   inDirectory:@"JavaScriptCore.framework"] UTF8String];
-    if (path) {
-      RCTPerformanceLoggerStart(RCTPLJSCWrapperOpenLibrary);
-      handler = dlopen(path, RTLD_LAZY);
-      RCTPerformanceLoggerEnd(RCTPLJSCWrapperOpenLibrary);
-      if (!handler) {
-        RCTLogWarn(@"Can't load custome JSC library: %s", dlerror());
+    handler = dlopen("@executable_path/Frameworks/JSC.framework/JSC", RTLD_LAZY | RTLD_LOCAL);
+    if (!handler) {
+      const char *err = dlerror();
+
+      // Ignore the dlopen failure if custom JSC wasn't included in our app
+      // bundle. Unfortunately dlopen only provides string based errors.
+      if (err != nullptr && strstr(err, "image not found") == nullptr) {
+        RCTLogWarn(@"Can't load custom JSC library: %s", err);
       }
     }
   });
+
   return handler;
 }
 
@@ -69,7 +68,6 @@ static void RCTSetUpCustomLibraryPointers(RCTJSCWrapper *wrapper)
     return;
   }
 
-  RCTPerformanceLoggerStart(RCTPLJSCWrapperLoadFunctions);
   wrapper->JSValueToStringCopy = (JSValueToStringCopyFuncType)dlsym(libraryHandle, "JSValueToStringCopy");
   wrapper->JSStringCreateWithCFString = (JSStringCreateWithCFStringFuncType)dlsym(libraryHandle, "JSStringCreateWithCFString");
   wrapper->JSStringCopyCFString = (JSStringCopyCFStringFuncType)dlsym(libraryHandle, "JSStringCopyCFString");
@@ -90,13 +88,12 @@ static void RCTSetUpCustomLibraryPointers(RCTJSCWrapper *wrapper)
   wrapper->JSContext = (__bridge Class)dlsym(libraryHandle, "OBJC_CLASS_$_JSContext");
   wrapper->JSValue = (__bridge Class)dlsym(libraryHandle, "OBJC_CLASS_$_JSValue");
   wrapper->configureJSContextForIOS = (configureJSContextForIOSFuncType)dlsym(libraryHandle, "configureJSContextForIOS");
-  RCTPerformanceLoggerEnd(RCTPLJSCWrapperLoadFunctions);
 }
 
 RCTJSCWrapper *RCTJSCWrapperCreate(BOOL useCustomJSC)
 {
   RCTJSCWrapper *wrapper = (RCTJSCWrapper *)malloc(sizeof(RCTJSCWrapper));
-  if (useCustomJSC && [UIDevice currentDevice].systemVersion.floatValue >= 8) {
+  if (useCustomJSC) {
     RCTSetUpCustomLibraryPointers(wrapper);
   } else {
     RCTSetUpSystemLibraryPointers(wrapper);

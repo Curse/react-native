@@ -22,23 +22,70 @@
    return sharedRCTI18nUtilInstance;
 }
 
+/**
+ * Check if the app is currently running on an RTL locale.
+ * This only happens when the app:
+ * - is forcing RTL layout, regardless of the active language (for development purpose)
+ * - allows RTL layout when using RTL locale
+ */
 - (BOOL)isRTL
 {
-  if ([self forceRTL]) return YES;
+  if ([self isRTLForced]) {
+    return YES;
+  }
+  if ([self isRTLAllowed] && [self isApplicationPreferredLanguageRTL]) {
+    return YES;
+  }
   return NO;
 }
 
-- (BOOL)forceRTL
+/**
+ * Should be used very early during app start up
+ * Before the bridge is initialized
+ */
+- (BOOL)isRTLAllowed
+{
+  BOOL rtlStatus = [[NSUserDefaults standardUserDefaults]
+                            boolForKey:@"RCTI18nUtil_allowRTL"];
+  return rtlStatus;
+}
+
+- (void)allowRTL:(BOOL)rtlStatus
+{
+  [[NSUserDefaults standardUserDefaults] setBool:rtlStatus forKey:@"RCTI18nUtil_allowRTL"];
+  [[NSUserDefaults standardUserDefaults] synchronize];
+}
+
+/**
+ * Could be used to test RTL layout with English
+ * Used for development and testing purpose
+ */
+- (BOOL)isRTLForced
 {
   BOOL rtlStatus = [[NSUserDefaults standardUserDefaults]
                             boolForKey:@"RCTI18nUtil_forceRTL"];
   return rtlStatus;
 }
 
-- (void)setForceRTL:(BOOL)rtlStatus
+- (void)forceRTL:(BOOL)rtlStatus
 {
   [[NSUserDefaults standardUserDefaults] setBool:rtlStatus forKey:@"RCTI18nUtil_forceRTL"];
   [[NSUserDefaults standardUserDefaults] synchronize];
+}
+
+// Check if the current device language is RTL
+- (BOOL)isDevicePreferredLanguageRTL
+{
+  NSLocaleLanguageDirection direction = [NSLocale characterDirectionForLanguage:[[NSLocale preferredLanguages] objectAtIndex:0]];
+  return direction == NSLocaleLanguageDirectionRightToLeft;
+}
+
+// Check if the current application language is RTL
+- (BOOL)isApplicationPreferredLanguageRTL
+{
+  NSString *preferredAppLanguage = [[[NSBundle mainBundle] preferredLocalizations] objectAtIndex:0];
+  NSLocaleLanguageDirection direction = [NSLocale characterDirectionForLanguage:preferredAppLanguage];
+  return direction == NSLocaleLanguageDirectionRightToLeft;
 }
 
 @end
