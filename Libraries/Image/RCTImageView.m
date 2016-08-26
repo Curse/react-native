@@ -246,7 +246,7 @@ RCT_NOT_IMPLEMENTED(- (instancetype)init)
 - (void)reloadImage
 {
   [self cancelImageLoad];
-
+  __weak RCTImageView *weakSelf = self;
   _imageSource = [self imageSourceForSize:self.frame.size];
 
   if (_imageSource && self.frame.size.width > 0 && self.frame.size.height > 0) {
@@ -257,10 +257,13 @@ RCT_NOT_IMPLEMENTED(- (instancetype)init)
     RCTImageLoaderProgressBlock progressHandler = nil;
     if (_onProgress) {
       progressHandler = ^(int64_t loaded, int64_t total) {
-        self->_onProgress(@{
-          @"loaded": @((double)loaded),
-          @"total": @((double)total),
-        });
+        __strong RCTImageView *strongSelf = weakSelf;
+        if (strongSelf) {
+          strongSelf->_onProgress(@{
+            @"loaded": @((double)loaded),
+            @"total": @((double)total),
+          });
+        }
       };
     }
 
@@ -273,9 +276,10 @@ RCT_NOT_IMPLEMENTED(- (instancetype)init)
     }
 
     RCTImageSource *source = _imageSource;
-    __weak RCTImageView *weakSelf = self;
     RCTImageLoaderCompletionBlock completionHandler = ^(NSError *error, UIImage *loadedImage) {
-      [weakSelf imageLoaderLoadedImage:loadedImage error:error forImageSource:source];
+      if (weakSelf) {
+        [weakSelf imageLoaderLoadedImage:loadedImage error:error forImageSource:source];
+      }
     };
 
     _reloadImageCancellationBlock =
@@ -308,19 +312,24 @@ RCT_NOT_IMPLEMENTED(- (instancetype)init)
     return;
   }
 
+  __weak RCTImageView *weakSelf = self;
   void (^setImageBlock)(UIImage *) = ^(UIImage *image) {
+    __strong RCTImageView *strongSelf = weakSelf;
+    if (!strongSelf || !image) {
+      return;
+    }
     if (image.reactKeyframeAnimation) {
-      [self.layer addAnimation:image.reactKeyframeAnimation forKey:@"contents"];
+      [strongSelf.layer addAnimation:image.reactKeyframeAnimation forKey:@"contents"];
     } else {
-      [self.layer removeAnimationForKey:@"contents"];
-      self.image = image;
+      [strongSelf.layer removeAnimationForKey:@"contents"];
+      strongSelf.image = image;
     }
 
-    if (self->_onLoad) {
-      self->_onLoad(nil);
+    if (strongSelf->_onLoad) {
+      strongSelf->_onLoad(nil);
     }
-    if (self->_onLoadEnd) {
-      self->_onLoadEnd(nil);
+    if (strongSelf->_onLoadEnd) {
+      strongSelf->_onLoadEnd(nil);
     }
   };
 

@@ -626,7 +626,7 @@ const TextInput = React.createClass({
           onContentSizeChange={this.props.onContentSizeChange}
           onSelectionChange={onSelectionChange}
           onTextInput={this._onTextInput}
-          onSelectionChangeShouldSetResponder={emptyFunction.thatReturnsTrue}
+          //onSelectionChangeShouldSetResponder={emptyFunction.thatReturnsTrue} - the app can get into bad state with this line in.
           text={this._getText()}
           dataDetectorTypes={this.props.dataDetectorTypes}
         />;

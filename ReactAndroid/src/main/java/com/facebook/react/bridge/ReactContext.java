@@ -166,7 +166,15 @@ public class ReactContext extends ContextWrapper {
     UiThreadUtil.assertOnUiThread();
     mCurrentActivity = new WeakReference(activity);
     for (ActivityEventListener listener : mActivityEventListeners) {
-      listener.onNewIntent(intent);
+      // Some implementations of ActivityEventListener are not
+      // overriding onNewIntent correctly, so we should wrap
+      // this in a try/catch to prevent older implementations
+      // from crashing the app.
+      try {
+        listener.onNewIntent(intent);
+      } catch (Exception ex) {
+        // Skip calling onNewIntent()
+      }
     }
   }
 
