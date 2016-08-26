@@ -244,7 +244,7 @@ RCT_NOT_IMPLEMENTED(- (instancetype)init)
                                  completionBlock:^(NSError *error, UIImage *loadedImage) {
       void (^setImageBlock)(UIImage *) = ^(UIImage *image) {
         __strong RCTImageView *strongSelf = weakSelf;
-        if (!strongSelf) {
+        if (!strongSelf || !image) {
           return;
         }
         if (![source isEqual:strongSelf.source]) {
