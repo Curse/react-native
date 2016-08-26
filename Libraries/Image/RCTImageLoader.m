@@ -231,8 +231,12 @@ static UIImage *RCTResizeImageIfNeeded(UIImage *image,
 
 - (void)dequeueTasks
 {
+    __weak RCTImageLoader *weakSelf = self;
     dispatch_async(_URLCacheQueue, ^{
-        
+        __strong RCTImageLoader *strongSelf = weakSelf;
+        if (!strongSelf || !strongSelf->_pendingTasks || !strongSelf->_activeTasks || !strongSelf->_pendingDecodes) {
+          return;
+        }
         // Remove completed tasks
         for (RCTNetworkTask *task in _pendingTasks.reverseObjectEnumerator) {
             switch (task.status) {
