@@ -292,14 +292,10 @@ RCT_EXPORT_MODULE()
   }
   NSURLRequest *request = [RCTConvert NSURLRequest:query[@"uri"]];
   if (request) {
-    __weak RCTNetworking *weakSelf = self;
+
     __block RCTURLRequestCancellationBlock cancellationBlock = nil;
     RCTNetworkTask *task = [self networkTaskWithRequest:request completionBlock:^(NSURLResponse *response, NSData *data, NSError *error) {
-      __strong RCTNetworking *strongSelf = weakSelf;
-      if (!strongSelf || !strongSelf->_methodQueue) {
-        return;
-      }
-      dispatch_async(strongSelf->_methodQueue, ^{
+      dispatch_async(self->_methodQueue, ^{
         cancellationBlock = callback(error, data ? @{@"body": data, @"contentType": RCTNullIfNil(response.MIMEType)} : nil);
       });
     }];
@@ -308,9 +304,7 @@ RCT_EXPORT_MODULE()
 
     __weak RCTNetworkTask *weakTask = task;
     return ^{
-      if (weakTask) {
-        [weakTask cancel];
-      }
+      [weakTask cancel];
       if (cancellationBlock) {
         cancellationBlock();
       }
@@ -388,20 +382,12 @@ RCT_EXPORT_MODULE()
   RCTAssertThread(_methodQueue, @"sendRequest: must be called on method queue");
 
   __block RCTNetworkTask *task;
-__weak RCTNetworking *weakSelf = self;
   RCTURLRequestProgressBlock uploadProgressBlock = ^(int64_t progress, int64_t total) {
-    __strong RCTNetworking *strongSelf = weakSelf;
-    if (strongSelf && task && strongSelf->_methodQueue) {
-      NSArray *responseJSON = @[task.requestID, @((double)progress), @((double)total)];
-      [strongSelf sendEventWithName:@"didSendNetworkData" body:responseJSON];
-    }
+    NSArray *responseJSON = @[task.requestID, @((double)progress), @((double)total)];
+    [self sendEventWithName:@"didSendNetworkData" body:responseJSON];
   };
 
   RCTURLRequestResponseBlock responseBlock = ^(NSURLResponse *response) {
-    __strong RCTNetworking *strongSelf = weakSelf;
-    if (!strongSelf || !task || !response) {
-      return;
-    }
     NSDictionary<NSString *, NSString *> *headers;
     NSInteger status;
     if ([response isKindOfClass:[NSHTTPURLResponse class]]) { // Might be a local file request
@@ -414,7 +400,7 @@ __weak RCTNetworking *weakSelf = self;
     }
     id responseURL = response.URL ? response.URL.absoluteString : [NSNull null];
     NSArray<id> *responseJSON = @[task.requestID, @(status), headers, responseURL];
-    [strongSelf sendEventWithName:@"didReceiveNetworkResponse" body:responseJSON];
+    [self sendEventWithName:@"didReceiveNetworkResponse" body:responseJSON];
   };
 
   // XHR does not allow you to peek at xhr.response before the response is
@@ -444,15 +430,10 @@ __weak RCTNetworking *weakSelf = self;
 
   RCTURLRequestCompletionBlock completionBlock =
   ^(NSURLResponse *response, NSData *data, NSError *error) {
-    __strong RCTNetworking *strongSelf = weakSelf;
-    if (!strongSelf || !task) {
-      return;
-    }
-
     // Unless we were sending incremental (text) chunks to JS, all along, now
     // is the time to send the request body to JS.
     if (!(incrementalUpdates && [responseType isEqualToString:@"text"])) {
-      [strongSelf sendData:data
+      [self sendData:data
         responseType:responseType
              forTask:task];
     }
@@ -461,8 +442,8 @@ __weak RCTNetworking *weakSelf = self;
                               error.code == kCFURLErrorTimedOut ? @YES : @NO
                               ];
 
-    [strongSelf sendEventWithName:@"didCompleteNetworkResponse" body:responseJSON];
-    [strongSelf->_tasksByRequestID removeObjectForKey:task.requestID];
+    [self sendEventWithName:@"didCompleteNetworkResponse" body:responseJSON];
+    [self->_tasksByRequestID removeObjectForKey:task.requestID];
   };
 
   task = [self networkTaskWithRequest:request completionBlock:completionBlock];

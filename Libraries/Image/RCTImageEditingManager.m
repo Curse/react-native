@@ -45,13 +45,9 @@ RCT_EXPORT_METHOD(cropImage:(NSURLRequest *)imageRequest
     [RCTConvert CGSize:cropData[@"size"]]
   };
 
-  __weak RCTImageEditingManager *weakSelf = self;
   [_bridge.imageLoader loadImageWithURLRequest:imageRequest callback:^(NSError *error, UIImage *image) {
-    __strong RCTImageEditingManager *strongSelf = weakSelf;
-    if (error || !strongSelf) {
-      if (errorCallback) {
-        errorCallback(error);
-      }
+    if (error) {
+      errorCallback(error);
       return;
     }
 
@@ -71,21 +67,14 @@ RCT_EXPORT_METHOD(cropImage:(NSURLRequest *)imageRequest
     }
 
     // Store image
-    if (!strongSelf->_bridge || !strongSelf->_bridge.imageStoreManager) {
-      return;
-    }
-    [strongSelf->_bridge.imageStoreManager storeImage:croppedImage withBlock:^(NSString *croppedImageTag) {
+    [self->_bridge.imageStoreManager storeImage:croppedImage withBlock:^(NSString *croppedImageTag) {
       if (!croppedImageTag) {
         NSString *errorMessage = @"Error storing cropped image in RCTImageStoreManager";
         RCTLogWarn(@"%@", errorMessage);
-        if (errorCallback) {
-          errorCallback(RCTErrorWithMessage(errorMessage));
-        }
+        errorCallback(RCTErrorWithMessage(errorMessage));
         return;
       }
-      if (successCallback) {
-        successCallback(@[croppedImageTag]);
-      }
+      successCallback(@[croppedImageTag]);
     }];
   }];
 }

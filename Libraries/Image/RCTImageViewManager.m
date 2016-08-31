@@ -49,17 +49,13 @@ RCT_EXPORT_METHOD(getSize:(NSURLRequest *)request
                   errorBlock:(RCTResponseErrorBlock)errorBlock)
 {
   [self.bridge.imageLoader getImageSizeForURLRequest:request
-                                  block:^(NSError *error, CGSize size) {
-                                    if (error) {
-                                      if (errorBlock) {
-                                        errorBlock(error);
-                                      }
-                                    } else {
-                                      if (successBlock) {
-                                        successBlock(@[@(size.width), @(size.height)]);
-                                      }
-                                    }
-                                  }];
+                                               block:^(NSError *error, CGSize size) {
+                                                 if (error) {
+                                                   errorBlock(error);
+                                                 } else {
+                                                   successBlock(@[@(size.width), @(size.height)]);
+                                                 }
+                                               }];
 }
 
 RCT_EXPORT_METHOD(prefetchImage:(NSURLRequest *)request
@@ -74,14 +70,10 @@ RCT_EXPORT_METHOD(prefetchImage:(NSURLRequest *)request
   [self.bridge.imageLoader loadImageWithURLRequest:request
                                           callback:^(NSError *error, UIImage *image) {
                                             if (error) {
-                                              if (reject) {
-                                                reject(@"E_PREFETCH_FAILURE", nil, error);
-                                              }
+                                              reject(@"E_PREFETCH_FAILURE", nil, error);
                                               return;
                                             }
-                                            if (resolve) {
-                                              resolve(@YES);
-                                            }
+                                            resolve(@YES);
                                           }];
 }
 

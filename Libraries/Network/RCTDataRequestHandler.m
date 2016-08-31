@@ -34,9 +34,6 @@ RCT_EXPORT_MODULE()
   if (!_queue) {
     _queue = [NSOperationQueue new];
     _queue.maxConcurrentOperationCount = 2;
-    if ([_queue respondsToSelector:@selector(qualityOfService)]) {
-      _queue.qualityOfService = NSQualityOfServiceUtility;
-    }
   }
 
   __weak __block NSBlockOperation *weakOp;
