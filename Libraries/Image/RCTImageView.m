@@ -44,7 +44,6 @@ static BOOL RCTShouldReloadImageForSizeChange(CGSize currentSize, CGSize idealSi
 @property (nonatomic, copy) RCTDirectEventBlock onError;
 @property (nonatomic, copy) RCTDirectEventBlock onLoad;
 @property (nonatomic, copy) RCTDirectEventBlock onLoadEnd;
-@property (nonatomic, strong) NSObject *cancelImageLock;
 
 @end
 
@@ -74,7 +73,6 @@ static BOOL RCTShouldReloadImageForSizeChange(CGSize currentSize, CGSize idealSi
                selector:@selector(clearImageIfDetached)
                    name:UIApplicationDidEnterBackgroundNotification
                  object:nil];
-    _cancelImageLock = [NSObject new];
   }
   return self;
 }
@@ -186,12 +184,10 @@ RCT_NOT_IMPLEMENTED(- (instancetype)init)
 
 - (void)cancelImageLoad
 {
-  @synchronized(_cancelImageLock) {
-    RCTImageLoaderCancellationBlock previousCancellationBlock = _reloadImageCancellationBlock;
-    if (previousCancellationBlock) {
-      previousCancellationBlock();
-      _reloadImageCancellationBlock = nil;
-    }
+  RCTImageLoaderCancellationBlock previousCancellationBlock = _reloadImageCancellationBlock;
+  if (previousCancellationBlock) {
+    previousCancellationBlock();
+    _reloadImageCancellationBlock = nil;
   }
 }
 
@@ -285,16 +281,14 @@ RCT_NOT_IMPLEMENTED(- (instancetype)init)
       }
     };
     
-    @synchronized (_cancelImageLock) {
-      _reloadImageCancellationBlock =
-      [_bridge.imageLoader loadImageWithURLRequest:source.request
-                                               size:imageSize
-                                              scale:imageScale
-                                            clipped:NO
-                                         resizeMode:_resizeMode
-                                      progressBlock:progressHandler
-                                    completionBlock:completionHandler];
-    }
+    _reloadImageCancellationBlock =
+    [_bridge.imageLoader loadImageWithURLRequest:source.request
+                                            size:imageSize
+                                           scale:imageScale
+                                         clipped:NO
+                                      resizeMode:_resizeMode
+                                   progressBlock:progressHandler
+                                 completionBlock:completionHandler];
   } else {
     [self clearImage];
   }
