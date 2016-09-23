@@ -59,9 +59,7 @@ RCT_EXPORT_MODULE()
 
     NSOperationQueue *callbackQueue = [NSOperationQueue new];
     callbackQueue.maxConcurrentOperationCount = 1;
-    if ([callbackQueue respondsToSelector:@selector(underlyingQueue)]) {
-      callbackQueue.underlyingQueue = [[_bridge networking] methodQueue];
-    }
+    callbackQueue.underlyingQueue = [[_bridge networking] methodQueue];
     NSURLSessionConfiguration *configuration = [NSURLSessionConfiguration defaultSessionConfiguration];
     _session = [NSURLSession sessionWithConfiguration:configuration
                                              delegate:self
