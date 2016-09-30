@@ -208,8 +208,10 @@ public class WebSocketModule extends ReactContextBaseJavaModule {
   public void send(String message, int id) {
     WebSocket client = mWebSocketConnections.get(id);
     if (client == null) {
-      // This is a programmer error
-      throw new RuntimeException("Cannot send a message. Unknown WebSocket id " + id);
+      //throw new RuntimeException("Cannot send a message. Unknown WebSocket id " + id + " message: " + message);
+      // We don't want to throw an exception here because the web socket could be disconnected
+      // asynchronously before it gets here and after we check if it's connected in JS
+      return;
     }
     try {
       client.sendMessage(RequestBody.create(WebSocket.TEXT, message));

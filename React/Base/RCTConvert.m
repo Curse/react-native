@@ -735,14 +735,6 @@ RCT_ENUM_CONVERTER(RCTAnimationType, (@{
                           orientation:image.imageOrientation];
   }
 
-  if (!CGSizeEqualToSize(imageSource.size, CGSizeZero) &&
-      !CGSizeEqualToSize(imageSource.size, image.size)) {
-    RCTLogError(@"Image source %@ size %@ does not match loaded image size %@.",
-                URL.path.lastPathComponent,
-                NSStringFromCGSize(imageSource.size),
-                NSStringFromCGSize(image.size));
-  }
-
   return image;
 }
 

@@ -614,7 +614,7 @@ const TextInput = React.createClass({
           onBlur={this._onBlur}
           onChange={this._onChange}
           onSelectionChange={this._onSelectionChange}
-          onSelectionChangeShouldSetResponder={emptyFunction.thatReturnsTrue}
+          //onSelectionChangeShouldSetResponder={emptyFunction.thatReturnsTrue} - the app can get into bad state with this line in.
           text={this._getText()}
         />;
     } else {
@@ -642,7 +642,7 @@ const TextInput = React.createClass({
           onContentSizeChange={this.props.onContentSizeChange}
           onSelectionChange={this._onSelectionChange}
           onTextInput={this._onTextInput}
-          onSelectionChangeShouldSetResponder={emptyFunction.thatReturnsTrue}
+          //onSelectionChangeShouldSetResponder={emptyFunction.thatReturnsTrue} - the app can get into bad state with this line in.
           text={this._getText()}
           dataDetectorTypes={this.props.dataDetectorTypes}
         />;

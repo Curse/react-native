@@ -315,9 +315,8 @@ public class ReactEditText extends EditText {
         new SpannableStringBuilder(reactTextUpdate.getText());
     manageSpans(spannableStringBuilder);
     mContainsImages = reactTextUpdate.containsImages();
-    mIsSettingTextFromJS = true;
-    getText().replace(0, length(), spannableStringBuilder);
     mIsSettingTextFromJS = false;
+    getText().replace(0, length(), spannableStringBuilder);
   }
 
   /**
