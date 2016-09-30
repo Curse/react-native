@@ -20,6 +20,8 @@
 #import "RCTUIManager.h"
 #import "RCTUtils.h"
 
+#import <UIKit/UIKit.h>
+
 NSString *const RCTShadowViewAttributeName = @"RCTShadowViewAttributeName";
 NSString *const RCTIsHighlightedAttributeName = @"IsHighlightedAttributeName";
 NSString *const RCTReactTagAttributeName = @"ReactTagAttributeName";
@@ -164,10 +166,17 @@ static CSSSize RCTMeasure(void *context, float width, CSSMeasureMode widthMode, 
         RCTLogError(@"Views nested within a <Text> must have a width and height");
       }
       UIFont *font = [textStorage attribute:NSFontAttributeName atIndex:range.location effectiveRange:nil];
+      UIFontDescriptor *adjustedFontDescriptor = [UIFontDescriptor preferredFontDescriptorWithTextStyle:UIFontTextStyleBody];
+      CGFloat adjustedFontSize = [adjustedFontDescriptor pointSize];
       CGRect glyphRect = [layoutManager boundingRectForGlyphRange:range inTextContainer:textContainer];
+      BOOL shouldAdjustY = [self reactSubviews].count == 1;
+      if (height < adjustedFontSize) {
+        width = (adjustedFontSize / height) * width;
+        height = (adjustedFontSize / height) * height;
+      }
       CGRect childFrame = {{
         RCTRoundPixelValue(glyphRect.origin.x),
-        RCTRoundPixelValue(glyphRect.origin.y + glyphRect.size.height - height + font.descender)
+        RCTRoundPixelValue(glyphRect.origin.y + glyphRect.size.height - height - (shouldAdjustY ? font.descender : 0))
       }, {
         RCTRoundPixelValue(width),
         RCTRoundPixelValue(height)
@@ -309,12 +318,20 @@ static CSSSize RCTMeasure(void *context, float width, CSSMeasureMode widthMode, 
       if (CSSValueIsUndefined(width) || CSSValueIsUndefined(height)) {
         RCTLogError(@"Views nested within a <Text> must have a width and height");
       }
+      UIFontDescriptor *fontDescriptor = [UIFontDescriptor preferredFontDescriptorWithTextStyle:UIFontTextStyleBody];
+      CGFloat adjustedFontSize = [fontDescriptor pointSize];
+      if (height < adjustedFontSize) {
+        width = (adjustedFontSize / height) * width;
+        height = (adjustedFontSize / height) * height;
+      }
       NSTextAttachment *attachment = [NSTextAttachment new];
-      attachment.bounds = (CGRect){CGPointZero, {width, height}};
+      attachment.bounds = (CGRect){{0, 0}, {width, height}};
       NSMutableAttributedString *attachmentString = [NSMutableAttributedString new];
       [attachmentString appendAttributedString:[NSAttributedString attributedStringWithAttachment:attachment]];
       [attachmentString addAttribute:RCTShadowViewAttributeName value:child range:(NSRange){0, attachmentString.length}];
       [attributedString appendAttributedString:attachmentString];
+      
+      height = MAX(height, font.lineHeight);
       if (height > heightOfTallestSubview) {
         heightOfTallestSubview = height;
       }
