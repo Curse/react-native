@@ -170,8 +170,8 @@ static CSSSize RCTMeasure(void *context, float width, CSSMeasureMode widthMode, 
       CGFloat adjustedFontSize = [adjustedFontDescriptor pointSize];
       CGRect glyphRect = [layoutManager boundingRectForGlyphRange:range inTextContainer:textContainer];
       BOOL shouldAdjustY = [self reactSubviews].count == 1;
-      if (height < adjustedFontSize && (width / height) <= 2) {
-        width = (adjustedFontSize / width) * width;
+      if (height < adjustedFontSize) {
+        width = (adjustedFontSize / height) * width;
         height = (adjustedFontSize / height) * height;
       }
       CGRect childFrame = {{
@@ -320,8 +320,8 @@ static CSSSize RCTMeasure(void *context, float width, CSSMeasureMode widthMode, 
       }
       UIFontDescriptor *fontDescriptor = [UIFontDescriptor preferredFontDescriptorWithTextStyle:UIFontTextStyleBody];
       CGFloat adjustedFontSize = [fontDescriptor pointSize];
-      if (height < adjustedFontSize && (width / height) <= 2) {
-        width = (adjustedFontSize / width) * width;
+      if (height < adjustedFontSize) {
+        width = (adjustedFontSize / height) * width;
         height = (adjustedFontSize / height) * height;
       }
       NSTextAttachment *attachment = [NSTextAttachment new];
