@@ -723,7 +723,7 @@ var Navigator = React.createClass({
   _onAnimationEnd: function() {
     var max = this.state.routeStack.length - 1;
     for (var index = 0; index <= max; index++) {
-      this._setRenderSceneToHardwareTextureAndroid(index, false);
+      this._setRenderSceneToHardwareTextureAndroid(index, index !== max);
     }
 
     var navBar = this._navBar;
