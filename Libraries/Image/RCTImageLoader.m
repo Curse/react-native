@@ -378,7 +378,7 @@ static UIImage *RCTResizeImageIfNeeded(UIImage *image,
   });
 
   return ^{
-    if (cancelLoad) {
+    if (cancelLoad && !cancelled) {
       cancelLoad();
       cancelLoad = nil;
     }
@@ -544,7 +544,7 @@ static UIImage *RCTResizeImageIfNeeded(UIImage *image,
       completionBlock(error_, image);
     };
 
-    cancelLoad = [weakSelf decodeImageData:imageOrData
+    cancelLoad = [strongSelf decodeImageData:imageOrData
                                       size:size
                                      scale:scale
                                    clipped:clipped
