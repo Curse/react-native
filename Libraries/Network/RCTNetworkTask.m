@@ -82,7 +82,9 @@ RCT_NOT_IMPLEMENTED(- (instancetype)init)
   if (token && [_handler respondsToSelector:@selector(cancelRequest:)]) {
     [_handler cancelRequest:token];
   }
-  [self invalidate];
+  if ([_selfReference respondsToSelector:@selector(invalidate)]) {
+    [_selfReference invalidate];
+  }
 }
 
 - (BOOL)validateRequestToken:(id)requestToken
