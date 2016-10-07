@@ -315,7 +315,9 @@ static UIImage *RCTResizeImageIfNeeded(UIImage *image,
   __block volatile uint32_t cancelled = 0;
   __block dispatch_block_t cancelLoad = nil;
   void (^completionHandler)(NSError *, id, NSString *) = ^(NSError *error, id imageOrData, NSString *fetchDate) {
-    cancelLoad = nil;
+    if (!cancelled) {
+        cancelLoad = nil;
+    }
 
     BOOL cacheResult = [loadHandler respondsToSelector:@selector(shouldCacheLoadedImages)] ?
       [loadHandler shouldCacheLoadedImages] : YES;
@@ -481,7 +483,10 @@ static UIImage *RCTResizeImageIfNeeded(UIImage *image,
 
   return ^{
     [task cancel];
-    [weakSelf dequeueTasks];
+    __typeof(self) strongSelf = weakSelf;
+    if (strongSelf) {
+      [strongSelf dequeueTasks];
+    }
   };
 }
 
@@ -496,8 +501,9 @@ static UIImage *RCTResizeImageIfNeeded(UIImage *image,
   __block volatile uint32_t cancelled = 0;
   __block dispatch_block_t cancelLoad = nil;
   dispatch_block_t cancellationBlock = ^{
-    if (cancelLoad) {
+    if (cancelLoad && !cancelled) {
       cancelLoad();
+      cancelLoad = nil;
     }
     OSAtomicOr32Barrier(1, &cancelled);
   };
@@ -523,7 +529,9 @@ static UIImage *RCTResizeImageIfNeeded(UIImage *image,
                                                  resizeMode:resizeMode
                                                responseDate:fetchDate];
       if (image) {
-        cancelLoad = nil;
+        if (!cancelled) {
+          cancelLoad = nil;
+        }
         completionBlock(nil, image);
         return;
       }
@@ -540,7 +548,9 @@ static UIImage *RCTResizeImageIfNeeded(UIImage *image,
                                     responseDate:fetchDate];
       }
 
-      cancelLoad = nil;
+      if (!cancelled) {
+        cancelLoad = nil;
+      }
       completionBlock(error_, image);
     };
 
