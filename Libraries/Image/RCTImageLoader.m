@@ -382,7 +382,9 @@ static UIImage *RCTResizeImageIfNeeded(UIImage *image,
   return ^{
     if (cancelLoad && !cancelled) {
       cancelLoad();
-      cancelLoad = nil;
+      if (!cancelled) {
+        cancelLoad = nil;
+      }
     }
     OSAtomicOr32Barrier(1, &cancelled);
   };
@@ -503,7 +505,9 @@ static UIImage *RCTResizeImageIfNeeded(UIImage *image,
   dispatch_block_t cancellationBlock = ^{
     if (cancelLoad && !cancelled) {
       cancelLoad();
-      cancelLoad = nil;
+      if (!cancelled) {
+        cancelLoad = nil;
+      }
     }
     OSAtomicOr32Barrier(1, &cancelled);
   };
@@ -516,7 +520,9 @@ static UIImage *RCTResizeImageIfNeeded(UIImage *image,
     }
 
     if (!imageOrData || [imageOrData isKindOfClass:[UIImage class]]) {
-      cancelLoad = nil;
+      if (!cancelled) {
+        cancelLoad = nil;
+      }
       completionBlock(error, imageOrData);
       return;
     }
