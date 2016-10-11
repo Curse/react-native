@@ -115,4 +115,59 @@ didReceiveResponse:(NSURLResponse *)response
   [_delegates removeObjectForKey:task];
 }
 
+- (void)URLSession:(NSURLSession *)session
+              task:(NSURLSessionTask *)task
+willPerformHTTPRedirection:(NSHTTPURLResponse *)response
+        newRequest:(NSURLRequest *)request
+ completionHandler:(void (^)(NSURLRequest *))completionHandler {
+  // Validate properties
+  // - make sure host is going to avatars.curseapp.net
+  // - all other redirects should go through standard redirect process
+  if (
+      session &&
+      task &&
+      response &&
+      response.URL &&
+      [[response.URL host] isEqualToString:@"avatars.curseapp.net"]
+  ) {
+    // Create new task to retrieve the redirected data
+    NSURLSessionDataTask *redirectTask = [session dataTaskWithRequest:request completionHandler:^(NSData * _Nullable data, NSURLResponse * _Nullable iResponse, NSError * _Nullable error) {
+      // Validate all properties
+      if (
+          iResponse &&
+          [iResponse URL] &&
+          data &&
+          [data length] &&
+          request &&
+          [request URL] &&
+          response &&
+          [response URL] &&
+          session &&
+          task
+      ) {
+        // Cache the inner response to the original URL
+        // - we don't cache the second request's response since that should be cached before entering this block
+        NSCachedURLResponse *cacheResponse = [[NSCachedURLResponse alloc] initWithResponse:iResponse data:data];
+        if (cacheResponse) {
+            [[NSURLCache sharedURLCache] storeCachedResponse:cacheResponse forRequest:[[NSURLRequest alloc] initWithURL:response.URL]];
+        }
+      }
+      
+      // Call the completion handler, since the ImageView requires the normal path to complete
+      if (completionHandler) {
+        completionHandler(request);
+      }
+    }];
+    
+    // Start the new task
+    [redirectTask resume];
+    return;
+  }
+  
+  // If the original request was not to avatars.curseapp.net, pass through the new request
+  if (completionHandler) {
+    completionHandler(request);
+  }
+}
+
 @end
