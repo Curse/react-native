@@ -147,7 +147,7 @@ willPerformHTTPRedirection:(NSHTTPURLResponse *)response
       ) {
         // Cache the inner response to the original URL
         // - we don't cache the second request's response since that should be cached before entering this block
-         NSCachedURLResponse *cacheResponse = [[NSCachedURLResponse alloc] initWithResponse:iResponse data:data userInfo:nil storagePolicy:NSURLCacheStorageAllowed];
+        NSCachedURLResponse *cacheResponse = [[NSCachedURLResponse alloc] initWithResponse:iResponse data:data userInfo:nil storagePolicy:NSURLCacheStorageAllowed];
         if (cacheResponse) {
             [[NSURLCache sharedURLCache] storeCachedResponse:cacheResponse forRequest:[[NSURLRequest alloc] initWithURL:response.URL]];
         }

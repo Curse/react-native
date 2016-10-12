@@ -46,7 +46,7 @@
   id<RCTImageCache> _imageCache;
   NSMutableArray *_pendingTasks;
   NSInteger _activeTasks;
-  NSMutableArray *_pendingDecodes;
+  NSMutableArray *_pendingDecodes;  
   NSInteger _scheduledDecodes;
   NSUInteger _activeBytes;
 }
@@ -444,7 +444,7 @@ static UIImage *RCTResizeImageIfNeeded(UIImage *image,
 
   // Download image
   __weak __typeof(self) weakSelf = self;
-  RCTNetworkTask *task = [networking networkTaskWithRequest:request completionBlock:^(NSURLResponse *response, NSData *data, NSError *error) {
+  __block RCTNetworkTask *task = [networking networkTaskWithRequest:request completionBlock:^(NSURLResponse *response, NSData *data, NSError *error) {
     __typeof(self) strongSelf = weakSelf;
     if (!strongSelf) {
       return;
@@ -484,11 +484,15 @@ static UIImage *RCTResizeImageIfNeeded(UIImage *image,
   }
 
   return ^{
-    [task cancel];
     __typeof(self) strongSelf = weakSelf;
-    if (strongSelf) {
-      [strongSelf dequeueTasks];
+    if (!strongSelf || !task) {
+      return;
     }
+    dispatch_async(strongSelf->_URLRequestQueue, ^{
+      [task cancel];
+      task = nil;
+    });
+    [strongSelf dequeueTasks];
   };
 }
 

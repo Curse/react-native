@@ -423,7 +423,7 @@ RCT_NOT_IMPLEMENTED(- (instancetype)init)
     // prioritise image requests that are actually on-screen, this removes
     // requests that have gotten "stuck" from the queue, unblocking other images
     // from loading.
-    if (_imageSource.request.URL.absoluteString) { [self cancelImageLoad]; }
+    [self cancelImageLoad];
   } else if ([self shouldChangeImageSource]) {
     [self reloadImage];
   }
